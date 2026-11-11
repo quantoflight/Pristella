@@ -10,25 +10,21 @@ OVMF_VARS = OVMF_VARS.fd
 TMP_DIR = $(HOME)/Pristella/tmp
 RL = $(ROOTFS_DIR)/etc/runlevels
 
-# Последняя console= становится /dev/console (сюда пишет OpenRC)
 CONSOLE = console=tty0 console=ttyS0,115200
 
-# Библиотеки, собранные вручную, кладутся в rootfs при сборке
 LIBS = $(HOME)/Pristella/builds/util-linux-2.41.3/.libs/libmount.so.1 \
        $(HOME)/Pristella/builds/util-linux-2.41.3/.libs/libblkid.so.1 \
        $(HOME)/Pristella/builds/pcre2-10.44/.libs/libpcre2-8.so.0 \
        $(HOME)/Pristella/builds/openssl-3.3.1/libcrypto.so.3
 
-# --- Команда запуска QEMU (выход: Ctrl+A, затем X) ---
 QEMU = qemu-system-x86_64 \
      -enable-kvm \
-     -m 1024 \
+     -m 2048 \
      -vga std \
      -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2-ovmf/OVMF_CODE.fd \
      -drive if=pflash,format=raw,file=$(OVMF_VARS) \
-     -drive format=raw,file=$(IMAGE),if=ide
+     -drive format=raw,file=$(IMAGE),if=ide -nic user
 
-# --- Цели ---
 .PHONY: all clean install rootfs-setup initramfs run boot
 
 all: install
@@ -99,7 +95,7 @@ install: clean rootfs-setup
 	  -p /boot/grub \
 	  part_gpt part_msdos ext2 fat normal linux configfile echo test
 
-	truncate -s 2G $(IMAGE)
+	truncate -s 10G $(IMAGE)
 
 	parted -s $(IMAGE) mklabel gpt
 	parted -s $(IMAGE) mkpart primary fat32 1MiB 129MiB
