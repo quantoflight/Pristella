@@ -1,0 +1,10 @@
+kernel
+tmp/*
+rootfs
+builds
+
+*.o
+*.a
+*.so
+*.lo
+*.gz
