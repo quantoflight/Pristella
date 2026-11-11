@@ -127,11 +127,9 @@ install: clean rootfs-setup
 
 get-rootfs:
 	cd $(HOME)/Pristella && tar -xJf pristella-rootfs.tar.xz
-	cd $(HOME)/Pristella && tar -xJf pristella-builds.tar.xz
 
 get-archive:
 	cd $(HOME)/Pristella && tar -cJf pristella-rootfs.tar.xz rootfs/
-	cd $(HOME)/Pristella && tar -cJf pristella-builds.tar.xz builds/
 	@echo "$(HOME)/Pristella/pristella-rootfs.tar.xz"
 
 run: install
