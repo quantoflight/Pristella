@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ~/Pristella/kernel/linux-6.12 || { echo "Папка с ядром не найдена!"; exit 1; }
+cd ~/Pristella/kernel/linux-6.12 || { echo "folder not found"; exit 1; }
 
 ./scripts/config --disable WERROR
 ./scripts/config --enable DRM_I915
@@ -13,10 +13,24 @@ cd ~/Pristella/kernel/linux-6.12 || { echo "Папка с ядром не най
 ./scripts/config --enable EFI_STUB
 ./scripts/config --disable LOCALVERSION_AUTO
 ./scripts/config --set-str LOCALVERSION "-Pristella"
+./scripts/config --enable SATA_AHCI
+./scripts/config --enable BLK_DEV_NVME
+./scripts/config --enable EXT4_FS
+./scripts/config --enable USB_SUPPORT
+./scripts/config --enable USB_XHCI_HCD
+./scripts/config --enable USB_HID
+./scripts/config --enable HID_GENERIC
+./scripts/config --enable NET_VENDOR_REALTEK
+./scripts/config --enable R8169
+./scripts/config --enable NET_VENDOR_INTEL
+./scripts/config --enable E1000
+./scripts/config --enable E1000E
+./scripts/config --enable VFAT_FS
+./scripts/config --enable FAT_FS
+./scripts/config --enable DEVTMPFS
+./scripts/config --enable DEVTMPFS_MOUNT
 
-if grep -q "std=gnu11" drivers/firmware/efi/libstub/Makefile; then
-
-else
+if ! grep -q "std=gnu11" drivers/firmware/efi/libstub/Makefile; then
     sed -i 's/cflags-$(CONFIG_X86)\t\t+= -m$(BITS) -D__KERNEL__/cflags-$(CONFIG_X86)\t\t+= -m$(BITS) -D__KERNEL__ -std=gnu11/' drivers/firmware/efi/libstub/Makefile
 fi
 

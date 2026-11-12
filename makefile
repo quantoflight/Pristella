@@ -1,4 +1,3 @@
-# --- Настройки ---
 KERNEL_DIR = kernel/linux-6.12
 KERNEL_IMG = $(KERNEL_DIR)/arch/x86/boot/bzImage
 INITRAMFS = builds/initramfs.cpio.gz
@@ -23,7 +22,9 @@ QEMU = qemu-system-x86_64 \
      -vga std \
      -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2-ovmf/OVMF_CODE.fd \
      -drive if=pflash,format=raw,file=$(OVMF_VARS) \
-     -drive format=raw,file=$(IMAGE),if=ide -nic user
+     -drive format=raw,file=$(IMAGE),if=ide \
+     -netdev user,id=net0 \
+     -device e1000,netdev=net0
 
 .PHONY: all clean install rootfs-setup initramfs run boot
 
@@ -79,7 +80,6 @@ rootfs-setup:
 
 	@test -f $(ROOTFS_DIR)/etc/rc.conf && sed -i -E 's/^#?(rc_logger)=.*/\1="YES"/; s/^#?(rc_verbose)=.*/\1=yes/' $(ROOTFS_DIR)/etc/rc.conf || true
 
-# Отдельная цель: initramfs в сборке образа не используется
 initramfs: rootfs-setup
 	mkdir -p builds
 	cd $(ROOTFS_DIR) && find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../$(INITRAMFS)
