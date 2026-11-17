@@ -35,7 +35,10 @@ if ! grep -q "std=gnu11" drivers/firmware/efi/libstub/Makefile; then
 fi
 
 make olddefconfig
-make -j$(nproc)
+make -j$(nproc) \
+    KCFLAGS="-std=gnu11" \
+    CC='gcc -std=gnu11'
+make modules_install INSTALL_MOD_PATH=~/Pristella/kernel/linux-6.12-install
 
 if [ -f "arch/x86/boot/bzImage" ]; then
     echo "path: $(pwd)/arch/x86/boot/bzImage"

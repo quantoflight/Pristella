@@ -8,6 +8,8 @@ EFI_DIR = /mnt/pristella_efi
 OVMF_VARS = OVMF_VARS.fd
 TMP_DIR = $(HOME)/Pristella/tmp
 RL = $(ROOTFS_DIR)/etc/runlevels
+KERNEL_MODULES_DIR = $(HOME)/Pristella/kernel/linux-6.12-install/lib/modules
+KERNEL_RELEASE = 6.12.0-Pristella
 
 CONSOLE = console=tty0 console=ttyS0,115200
 
@@ -52,8 +54,8 @@ rootfs-setup:
 	@printf '/dev/sda2\t/\text4\trw,noatime\t0\t0\n' > $(ROOTFS_DIR)/etc/fstab
 	@printf '/lib64\n/usr/lib\n' > $(ROOTFS_DIR)/etc/ld.so.conf
 
-	@for f in $(LIBS); do \
-	  test -f "$$f" || { echo "НЕТ: $$f"; exit 1; }; \
+#	@for f in $(LIBS); do \
+	  test -f "$$f" || { echo "NOT FOUND: $$f"; exit 1; }; \
 	  cp -L "$$f" $(ROOTFS_DIR)/usr/lib/; \
 	done
 
@@ -85,7 +87,7 @@ initramfs: rootfs-setup
 	cd $(ROOTFS_DIR) && find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../$(INITRAMFS)
 
 install: clean rootfs-setup
-	@test -f $(KERNEL_IMG) || (echo "Ядро не найдено: $(KERNEL_IMG). Соберите его сначала." && exit 1)
+	@test -f $(KERNEL_IMG) || (echo "kernel	not found: $(KERNEL_IMG). build the kernel first" && exit 1)
 	mkdir -p $(TMP_DIR) builds
 	printf 'set timeout=10\nset default=0\n\nmenuentry "Pristella GNU/Linux" {\n    insmod part_gpt\n    insmod ext2\n    set root=(hd0,gpt2)\n    linux /boot/bzImage root=/dev/sda2 rw init=/sbin/openrc-init $(CONSOLE)\n}\n' > $(TMP_DIR)/grub.cfg
 
@@ -120,6 +122,12 @@ install: clean rootfs-setup
 	sudo umount $(EFI_DIR); \
 	sudo umount $(MOUNT_DIR); \
 	sudo losetup -d $$LOOP_DEV
+
+modules:
+	@test -d $(KERNEL_MODULES_DIR)/$(KERNEL_RELEASE) || { echo "Modules not found: $(KERNEL_MODULES_DIR)/$(KERNEL_RELEASE). Build the kernel firsts."; exit 1; }
+	@mkdir -p $(ROOTFS_DIR)/lib/modules
+	@cp -a $(KERNEL_MODULES_DIR)/$(KERNEL_RELEASE) $(ROOTFS_DIR)/lib/modules/
+	@echo "modules copied to $(ROOTFS_DIR)/lib/modules/$(KERNEL_RELEASE)"
 
 get-rootfs:
 	cd $(HOME)/Pristella && tar -xJf pristella-rootfs.tar.xz
