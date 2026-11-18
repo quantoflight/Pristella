@@ -10,8 +10,8 @@ BOOT_PART=NONE
 SWAP_PART=NONE
 SWAP_ENABLE=false
 SWAP_FLAG_SET=false
-VERSION="0.14"
-MOD_DATE="11.16.26"
+VERSION="0.16"
+MOD_DATE="11.18.26"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -74,6 +74,7 @@ fi
 
 if [ "$SWAP_ENABLE" = "true" ]; then
     if [ "$SWAP_PART" = "NONE" ]; then
+        echo "ERROR: Swap enabled but no swap partition specified."
         exit 1
     fi
     if [ -b "$SWAP_PART" ]; then
@@ -116,7 +117,6 @@ fi
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 MOUNT_DIR="/mnt/pristella"
 ROOTFS_ARCHIVE="$SCRIPT_DIR/pristella-rootfs.tar.xz"
-KERNEL_SCRIPT="/root/build-kernel.sh"    
 
 # MOUNT
 echo "[info] Mounting partitions..."
@@ -147,24 +147,11 @@ mount --bind /dev "$MOUNT_DIR/dev"
 mount --bind /proc "$MOUNT_DIR/proc"
 mount --bind /sys "$MOUNT_DIR/sys"
 
-# CHECK SCRIPTS
-if [ ! -f "$MOUNT_DIR$KERNEL_SCRIPT" ]; then
-    echo "ERROR: $KERNEL_SCRIPT not found in rootfs!"
+# CHECK KERNEL
+if [ ! -f "$MOUNT_DIR/boot/bzImage" ]; then
+    echo "ERROR: bzImage not found in rootfs/boot/"
     umount -R "$MOUNT_DIR"
     exit 1
-fi
-
-# CHROOT && BUILD KERNEL
-echo "[info] Compiling kernel inside chroot (this may take a while)..."
-chroot "$MOUNT_DIR" /bin/bash -c "
-    cd /root || exit 1
-    chmod +x build-kernel.sh
-    ./build-kernel.sh
-" || { echo "ERROR: Kernel compilation failed"; umount -R "$MOUNT_DIR"; exit 1; }
-
-# COPING KERNEL
-if [ -f "$MOUNT_DIR/usr/src/linux-6.12/arch/x86/boot/bzImage" ]; then
-    cp "$MOUNT_DIR/usr/src/linux-6.12/arch/x86/boot/bzImage" "$MOUNT_DIR/boot/bzImage"
 fi
 
 # INSTALLING GRUB BOOTLOADER

@@ -1,7 +1,39 @@
 #!/bin/bash
 
-cd ~/Pristella/kernel/linux-6.12 || { echo "folder not found"; exit 1; }
+KERNEL_DIR="$HOME/Pristella/kernel/linux-6.12"
+ROOTFS_DIR="$HOME/Pristella/rootfs"
+CLEAN=false
 
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --clean)
+            CLEAN=true
+            shift
+            ;;
+        --kernel_path=*)
+            ROOTFS_DIR="${1#*=}"
+            shift
+            ;;
+        --kernel_mod_path=*)
+            ROOTFS_DIR="${1#*=}"
+            shift
+            ;;
+        *)
+            echo "Unknown arg: $1"
+            exit 1
+            ;;
+    esac
+done
+
+cd "$KERNEL_DIR" || { echo "Error: kernel folder not found at $KERNEL_DIR"; exit 1; }
+
+if [ "$CLEAN" = true ]; then
+    echo "[info] Cleaning kernel source tree..."
+    make clean
+    make mrproper
+fi
+
+echo "[info] Configuring kernel..."
 ./scripts/config --disable WERROR
 ./scripts/config --enable DRM_I915
 ./scripts/config --enable DRM_I915_GVT
@@ -35,14 +67,29 @@ if ! grep -q "std=gnu11" drivers/firmware/efi/libstub/Makefile; then
 fi
 
 make olddefconfig
+
+# Сборка
+echo "[info] Building kernel..."
 make -j$(nproc) \
     KCFLAGS="-std=gnu11" \
     CC='gcc -std=gnu11'
-make modules_install INSTALL_MOD_PATH=~/Pristella/kernel/linux-6.12-install
 
-if [ -f "arch/x86/boot/bzImage" ]; then
-    echo "path: $(pwd)/arch/x86/boot/bzImage"
-    echo "name: $(make kernelrelease)"
-else
-    echo "error: linux dont foud"
+if [ ! -f "arch/x86/boot/bzImage" ]; then
+    echo "Error: bzImage not found after build!"
+    exit 1
 fi
+
+echo "[info] Installing modules to $ROOTFS_DIR/lib/modules/..."
+make modules_install INSTALL_MOD_PATH="$ROOTFS_DIR"
+
+echo "[info] Generating depmod for target system..."
+depmod -b "$ROOTFS_DIR" $(make kernelrelease)
+
+echo "[info] Copying bzImage to $ROOTFS_DIR/boot/..."
+mkdir -p "$ROOTFS_DIR/boot"
+cp arch/x86/boot/bzImage "$ROOTFS_DIR/boot/bzImage"
+
+echo "[info] Done!"
+echo "Kernel version: $(make kernelrelease)"
+echo "Kernel image:   $ROOTFS_DIR/boot/bzImage"
+echo "Modules:        $ROOTFS_DIR/lib/modules/$(make kernelrelease)"
